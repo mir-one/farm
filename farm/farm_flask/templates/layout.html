@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Farm {{farm_version}}">
+  <meta name="application-name" content="Farm {{farm_version}}">
+  <meta name="theme-color" content="#ffffff">
+
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png" />
+  <script type="text/javascript">
+    function setClipboard(value) {
+      let tempInput = document.createElement("input");
+      tempInput.style = "position: absolute; left: -1000px; top: -1000px";
+      tempInput.value = value;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
+    }
+
+    (function(document,navigator,standalone) {
+      // prevents links from apps from opening in mobile safari
+      // this javascript must be the first script in your <head>
+      if ((standalone in navigator) && navigator[standalone]) {
+        var curnode, location=document.location, stop=/^(a|html)$/i;
+        document.addEventListener('click', function(e) {
+          curnode=e.target;
+          while (!(stop).test(curnode.nodeName)) {
+            curnode=curnode.parentNode;
+          }
+          if(
+            'href' in curnode && // is a link
+            (chref=curnode.href).replace(location.href,'').indexOf('#') && // is not an anchor
+            (	!(/^[a-z\+\.\-]+:/i).test(chref) ||                       // either does not have a proper scheme (relative links)
+              chref.indexOf(location.protocol+'//'+location.host)===0 ) // or is in the same protocol and domain
+          ) {
+            e.preventDefault();
+            location.href = curnode.href;
+          }
+        },false);
+      }
+    })(document,window.navigator,'standalone');
+  </script>
+
+  <title>{{host}}{% block title %}{% endblock %} - Farm {{farm_version}}</title>
+
+  <script src="/static/js/popper.min.js"></script>
+  <script src="/static/js/jquery-3.4.1.min.js"></script>
+
+  <script src="/static/js/bootstrap.min.js"></script>
+  <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+  <link href="/static/css/simple-sidebar.css" rel="stylesheet">
+
+  {% if current_user.theme in dark_themes %}
+    <link href="/static/css/custom-dark.css" rel="stylesheet">
+  {% else %}
+    <link href="/static/css/custom-light.css" rel="stylesheet">
+  {% endif %}
+
+  {% if current_user.theme != '' %}
+    <link href="/static/css/bootstrap-4-themes/{{current_user.theme}}.css" rel="stylesheet">
+  {% endif %}
+
+  <link href="/static/css/custom.css" rel="stylesheet">
+
+  <link href="/static/css/fa-svg-with-js.css" rel="stylesheet">
+  <script src="/static/js/fontawesome-all.min.js"></script>
+
+  <link href="/static/css/bootstrap-select.min.css" rel="stylesheet">
+  <script src="/static/js/bootstrap-select.min.js"></script>
+
+  <script>
+
+  function check_daemon_status() {
+    const url = '/daemonactive';
+    $.ajax(url, {
+      success: function(data, responseText, jqXHR) {
+        if (jqXHR.status === 204) {
+          document.getElementById("daemon-status").style.color = "#F70D1A";
+          $('#daemon-status').tooltip('hide').attr('data-original-title', "{{_('Daemon is Not Running')}}");
+        }
+        else {
+          if (data === 'alive') {
+            document.getElementById("daemon-status").style.color = "#4E9258";
+            $('#daemon-status').tooltip('hide').attr('data-original-title', "{{_('Daemon is Running')}}");
+          }
+          else {
+            document.getElementById("daemon-status").style.color = "#F70D1A";
+            $('#daemon-status').tooltip('hide').attr('data-original-title', "{{_('Daemon is Not Running')}}");
+          }
+        }
+      },
+      error: function() {
+        document.getElementById("daemon-status").style.color = "#f78900";
+        $('#daemon-status').tooltip('hide').attr('data-original-title', "{{_('Cannot Check Daemon Status')}}");
+      },
+      cache: false
+    });
+  }
+
+  function repeat_check_daemon_status() {
+    setInterval(function () {
+      // Update after every 30 seconds
+      check_daemon_status();
+    }, {% if active_page == "update" -%}5000{% else -%}60000{%- endif -%});
+  }
+
+  function get_time() {
+    const url = '/time';
+    $.getJSON(url,
+      function(time, responseText, jqXHR) {
+        if (jqXHR.status !== 204) {
+          document.getElementById("time-update").innerHTML = time;
+        }
+        else {
+          document.getElementById("time-update").innerHTML = '{{_('No Connection')}}';
+        }
+      }
+    );
+  }
+
+  function repeat_get_time() {
+    setInterval(function () {
+      get_time();
+    }, 60000);  // Refresh duration in milliseconds
+  }
+
+  $(document).ready(function(){
+    check_daemon_status();
+    repeat_check_daemon_status();
+    get_time();
+    repeat_get_time();
+  });
+
+  {% if not hide_tooltips %}
+    $(document).ready(function(){
+      $('input[title]').tooltip({placement:'top'});
+      $('textarea[title]').tooltip({placement:'top'});
+      $('.form-dropdown').dropdown();
+      $('.form-dropdown').tooltip();
+    });
+  {% endif %}
+
+  function set_navbar_classes() {
+    if($(window).width() > 768) {
+      $('#nav-respond').addClass('fixed-top py-0');
+      document.body.style.minHeight = "10rem";
+      document.body.style.paddingTop = "4rem";
+    }else{
+      $('#nav-respond').removeClass('fixed-top py-0');
+      $('#nav-respond').addClass('mb-3');
+      document.body.style.minHeight = "0";
+      document.body.style.paddingTop = "0";
+    }
+  }
+
+  $(window).on('resize', function() {
+    set_navbar_classes();
+  });
+
+  </script>
+
+  {% block head %}{% endblock %}
+  </head>
+  <body>
+
+    {% set active_page = active_page|default('') -%}
+    {% set help_page = help_page|default(['', '']) -%}
+
+    <nav id="nav-respond" class="navbar navbar-expand-md{% if current_user.theme in dark_themes %} navbar-dark bg-dark{% else %} navbar-light bg-light{% endif %}">
+
+      <a class="navbar-brand" id="daemon-status" data-toggle="tooltip" data-placement="bottom" href="{{url_for('routes_general.index_page')}}" style="text-align: center; padding: 0 15px; font-size: 0.8em; font-weight: bold;{%- if daemon_status == "alive" -%} /*noinspection CssOverwrittenProperties*/color: #4E9258{%- else -%} /*noinspection CssOverwrittenProperties*/color: #F70D1A{%- endif -%}" title="{%- if daemon_status == "alive" -%}{{_('Daemon is Running')}}{%- else -%}{{_('Daemon is Not Running')}}{%- endif -%}">{{host}} - {{farm_version}}<br><span id="time-update"></span></a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav mr-auto">
+
+          <li class="nav-item dropdown{% if active_page in ['dashboard', 'live', 'graph_async'] %} active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown00" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{_('Data')}}</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown00">
+              <a class="dropdown-item{% if active_page == 'live' %} active{% endif %}" href="{{url_for('routes_page.page_live')}}"><i class="fas fa-play-circle"></i> {{_('Live Measurements')}}</a>
+              <a class="dropdown-item{% if active_page == 'graph_async' %} active{% endif %}" href="{{url_for('routes_page.page_graph_async')}}"><i class="fas fa-sync"></i> {{_('Asynchronous Graphs')}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item disabled" href="#"><i class="fas fa-tachometer-alt"></i> {{_('Dashboards')}}</a>
+              {% for each_dash in dashboards %}
+              <a class="dropdown-item" href="/dashboard/{{each_dash.unique_id}}">{{each_dash.name}}</a>
+              <div class="dropdown-divider"></div>
+              {% endfor %}
+              <a class="dropdown-item" href="/dashboard-add">{{_('Add Dashboard')}}</a>
+            </div>
+          </li>
+
+          <li class="nav-item dropdown{% if active_page in ['data', 'output', 'function', 'method_list', 'lcd'] %} active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{_('Setup')}}</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item{% if active_page == 'input' %} active{% endif %}" href="{{url_for('routes_input.page_input')}}"><i class="fas fa-database"></i> {{dict_translation['input']['title']}}</a>
+              <a class="dropdown-item{% if active_page == 'output' %} active{% endif %}" href="{{url_for('routes_output.page_output')}}"><i class="fas fa-bolt"></i> {{dict_translation['output']['title']}}</a>
+              <a class="dropdown-item{% if active_page == 'function' %} active{% endif %}" href="{{url_for('routes_function.page_function')}}"><i class="fas fa-atom"></i> {{dict_translation['function']['title']}}</a>
+              <a class="dropdown-item{% if active_page == 'method_list' %} active{% endif %}" href="{{url_for('routes_method.method_list')}}"><i class="fas fa-chart-line"></i> {{dict_translation['method']['title']}}</a>
+              <a class="dropdown-item{% if active_page == 'lcd' %} active{% endif %}" href="{{url_for('routes_page.page_lcd')}}"><i class="fas fa-desktop"></i> {{dict_translation['lcd']['title']}}</a>
+            </div>
+          </li>
+
+          <li class="nav-item dropdown{% if active_page in ['camera', 'notes', 'export', 'usage', 'usage_reports'] %} active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown02" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{_('More')}}</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown02">
+              <a class="dropdown-item{% if active_page == 'camera' %} active{% endif %}" href="{{url_for('routes_page.page_camera')}}"><i class="fas fa-camera"></i> {{_('Camera')}}</a>
+              <a class="dropdown-item{% if active_page == 'notes' %} active{% endif %}" href="{{url_for('routes_page.page_notes')}}"><i class="fas fa-edit"></i> {{dict_translation['note']['title']}}</a>
+              <a class="dropdown-item{% if active_page == 'export' %} active{% endif %}" href="{{url_for('routes_page.page_export')}}"><i class="fas fa-save"></i> {{dict_translation['export']['title'] + ' ' + dict_translation['import']['title']}}</a>
+              <a class="dropdown-item{% if active_page == 'usage' %} active{% endif %}" href="{{url_for('routes_page.page_usage')}}"><i class="fas fa-sliders-h"></i> {{_('Energy Usage')}}</a>
+              <a class="dropdown-item{% if active_page == 'usage_reports' %} active{% endif %}" href="{{url_for('routes_page.page_usage_reports')}}"><i class="fas fa-list-alt"></i> {{_('Energy Usage Reports')}}</a>
+            </div>
+          </li>
+        {% for each_dash in dashboards if each_dash.unique_id == dashboard_id %}
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-toggle="modal" data-target="#modal_config_{{each_dash.unique_id}}"><i class="fas fa-cog"></i> {{each_dash.name}}</a>
+          </li>
+        {% endfor %}
+
+        </ul>
+
+        <ul class="navbar-nav ml-auto">
+
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown02" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-question-circle" style="font-size: 1.5em;"></i></a>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdown02">
+            {% if help_page[0] != '' %}
+              <a class="dropdown-item{% if active_page == 'help' %} active{% endif %}" target="_blank" href="{{help_page[0]}}"><i class="fas fa-book"></i> {{_('Help')}}: {{help_page[1]}}</a>
+            {% endif %}
+              <a class="dropdown-item{% if active_page == 'help' %} active{% endif %}" target="_blank" href="https://mir-one.github.io/Farm/"><i class="fas fa-book"></i> {{_('Farm Manual')}} ({{_('Online')}})</a>
+              <a class="dropdown-item{% if active_page == 'help' %} active{% endif %}" target="_blank" href="{{url_for('routes_static.download_pdf_manual')}}"><i class="fas fa-book"></i> {{_('Farm Manual')}} ({{_('PDF')}})</a>
+              <a class="dropdown-item" target="_blank" href="https://mir-one.github.io/Farm/API/"><i class="fas fa-plug"></i> {{_('Farm API Info')}}</a>
+              <a class="dropdown-item" target="_blank" href="/api"><i class="fas fa-plug"></i> {{_('Farm API Docs')}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" target="_blank" href="https://forum.mir.one/"><i class="fas fa-comments"></i> {{_('Discussion Forum')}}</a>
+              <a class="dropdown-item" target="_blank" href="https://github.com/mir-one/Farm/issues/new/choose"><i class="fas fa-bug"></i> {{_('Submit an Issue')}}</a>
+              <a class="dropdown-item" target="_blank" href="https://github.com/mir-one/Farm"><i class="fab fa-github"></i> {{_('Farm on Github')}}</a>
+              <a class="dropdown-item" target="_blank" href="https://github.com/mir-one/Farm/blob/master/CHANGELOG.md"><i class="fas fa-edit"></i> {{_('Changelog')}}</a>
+              <a class="dropdown-item" target="_blank" href="https://mir.one/donate/"><i class="fas fa-donate"></i> {{_('Donate')}}</a>
+            </div>
+          </li>
+
+          <li class="nav-item dropdown{% if upgrade_available %} dropdown-upgrade{% elif active_page in ['backup', 'dependencies', 'info', 'logview', 'settings', 'upgrade'] %} active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown02" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog" style="font-size: 1.5em;"></i></a>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdown02">
+              <a class="dropdown-item{% if active_page == 'settings' %} active{% endif %}" href="{{url_for('routes_settings.settings_general')}}"><i class="fas fa-wrench"></i> {{_('Configure')}}</a>
+              <a class="dropdown-item{% if active_page == 'logview' %} active{% endif %}" href="{{url_for('routes_page.page_logview')}}"><i class="fas fa-book"></i> {{_('Farm Logs')}}</a>
+              <a class="dropdown-item{% if active_page == 'info' %} active{% endif %}" href="{{url_for('routes_page.page_info')}}"><i class="fas fa-info-circle"></i> {{_('System Information')}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item{% if active_page == 'dependencies' %} active{% endif %}" href="{{url_for('routes_admin.admin_dependencies_main')}}"><i class="fa fa-link"></i> {{_('Dependencies')}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item{% if upgrade_available %} dropdown-item-upgrade{% elif active_page == 'upgrade' %} active{% endif %}" href="{{url_for('routes_admin.admin_upgrade')}}"><i class="fas fa-upload"></i> {{_('Upgrade')}}</a>
+              <a class="dropdown-item{% if active_page == 'backup' %} active{% endif %}" href="{{url_for('routes_admin.admin_backup')}}"><i class=" fas fa-save"></i> {{_('Backup Restore')}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="/systemctl/daemon_restart" onclick='return confirm("Confirm restarting the backend")'><i class="fas fa-redo-alt"></i> {{_('Restart Backend')}}</a>
+              <a class="dropdown-item" href="/systemctl/frontend_reload" onclick='return confirm("Confirm restarting the frontend")'><i class="fas fa-redo-alt"></i> {{_('Restart Frontend')}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="/systemctl/restart" onclick='return confirm("Confirm restarting the system")'><i class="fas fa-redo-alt"></i> {{_('Restart System')}}</a>
+              <a class="dropdown-item" href="/systemctl/shutdown" onclick='return confirm("Confirm shutting down the system")'><i class="fas fa-power-off"></i> {{_('Shutdown System')}}</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#" data-toggle="modal" data-target="#modal_config_theme"><i class="fas fa-user-cog"></i> {{_('Preferences')}}</a>
+              <a class="dropdown-item" href="/logout"><i class="fas fa-lock"></i> {{_('Logout')}} ({{current_user.name}})</a>
+            </div>
+          </li>
+
+        </ul>
+
+      </div>
+    </nav>
+
+    <div class="modal fade" id="modal_config_theme" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="padding: 1em">
+          <div class="modal-header">
+            <h5 class="modal-title">{{_('Preferences')}}</h5>
+          </div>
+
+          <form method="post" action="/change_preferences">
+            <div class="form-row" style="padding-top: 0.5em">
+              <div class="col-auto">
+                <label class='form-check-label'>{{_('Language')}}</label>
+                <div>
+                  <select class="form-control form-tooltip form-dropdown" data-placement="top" id="language" name="language" title="{{_("Selecting a language will override the web browser's language")}}">
+                    <option value="">Browser Default</option>
+                    {% for each_language in languages %}
+                    <option value="{{each_language[0]}}"{% if current_user.language == each_language[0] %} selected{% endif %}>{{each_language[1]}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="col-auto">
+                <label class='form-check-label'>{{_('Theme')}}</label>
+                <div>
+                  <select class="form-control" id="theme" name="theme">
+                    {% for value, name in themes %}
+                      <option value="{{value|e}}"{% if value == current_user.theme %} selected{% endif %}>{{name|e}}</option>
+                    {% endfor -%}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style="clear: both"></div>
+
+            <div class="row small-gutters" style="padding: 1em 1em 0 0.8em;">
+              <div class="col-auto">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+              </div>
+              <div class="col-auto">
+                <input class="btn btn-primary" id="user_preferences_save" name="user_preferences_save" type="submit" value="Save">
+              </div>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    {% for each_dash in dashboards %}
+    <div class="modal fade" id="modal_config_{{each_dash.unique_id}}" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="padding: 1em">
+          <div class="modal-header">
+            <h5 class="modal-title">Dashboard Configuration</h5>
+          </div>
+
+          <form method="post" action="/dashboard/{{each_dash.unique_id}}">
+            {{form_dashboard.csrf_token}}
+            {{form_dashboard.dashboard_id(value=each_dash.unique_id)}}
+
+            <div class="form-row">
+              <div class="col-auto">
+                {{form_dashboard.name.label(class_='control-label')}}
+                <div>
+                  {{form_dashboard.name(class_='form-control', value=each_dash.name, **{'title': dict_translation['name']['phrase']})}}
+                </div>
+              </div>
+            </div>
+
+            <div style="clear: both"></div>
+
+            <div class="row small-gutters" style="padding: 1em 1em 0 0.8em;">
+              <div class="col-auto">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+              </div>
+              <div class="col-auto">
+                {{form_dashboard.dash_modify(class_='btn btn-primary')}}
+              </div>
+              <div class="col-auto">
+                {{form_dashboard.dash_delete(class_='btn btn-primary', **{'onclick':'return confirm("Are you sure you want to delete this?")'})}}
+              </div>
+              <div class="col-auto">
+                {{form_dashboard.dash_duplicate(class_='btn btn-primary', **{'onclick':'return confirm("Are you sure you want to duplicate this dashboard and all of its widgets?")'})}}
+              </div>
+            {% if each_dash.locked %}
+              <div class="col-auto">
+                {{form_dashboard.unlock(class_='btn btn-primary')}}
+              </div>
+            {% else %}
+              <div class="col-auto">
+                {{form_dashboard.lock(class_='btn btn-primary')}}
+              </div>
+            {% endif %}
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {%- block body %}{% endblock -%}
+    <script>
+    $(document).ready(function(){
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+
+    window.onload = function() {
+      set_navbar_classes();
+    };
+
+    $('.selectpicker').selectpicker();
+    </script>
+  </body>
+</html>

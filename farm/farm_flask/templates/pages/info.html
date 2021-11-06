@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+{% set active_page = "info" %}
+{% set help_page = ["https://mir-one.github.io/Farm/System-Information/", _('System Information')] %}
+
+{% block title %} - {{_('System Information')}}{% endblock %}
+
+{% block body %}
+  <!-- Route: /info -->
+  <div class="container"> 
+    {% include 'flash_messages.html' %}
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em; font-size: 1.3em">
+        {{_('Farm Version:')}} <span style="color: #4E9258; font-weight: bold;">{{farm_version}}</span>
+        <br>{{_('Python Version:')}} <span style="color: #4E9258; font-weight: bold;">{{python_version}}</span>
+        <br>{{_('Database Version')}}:&nbsp;
+        {%- if database_version == correct_database_version -%}<span style="color: #4E9258; font-weight: bold;">{{database_version}}</span>
+            {%- else -%}<span style="color: #F70D1A; font-weight: bold;">{{database_version}}</span> (Incorrect Version. Should be {{correct_database_version}}) <a href="https://mir-one.github.io/Farm/Troubleshooting/#incorrect-database-version"><span style="font-size: 16px" class="fas fa-question-circle"></span></a>
+            {%- endif -%}
+        <br>{{_('Daemon Status')}}:&nbsp
+        {%- if daemon_status == "alive" %}<span style="color: #4E9258; font-weight: bold;">{{_('Running')}}</span>
+        {%- else %}<span style="color: #F70D1A; font-weight: bold;">{{_('Not Running')}}</span> <a href="https://mir-one.github.io/Farm/Troubleshooting/#daemon-not-running"><span style="font-size: 16px" class="fas fa-question-circle"></span></a>
+        {% endif %}
+        {% if daemon_up %}
+          <br>{{_('Daemon Process ID')}}: <span style="color: #4E9258; font-weight: bold;">{{daemon_pid}}</span>
+          <br>{{_('Daemon RAM Usage')}}: <span style="color: #4E9258; font-weight: bold;">{{ram_use_daemon}} MB</span>
+          <br>{{_('Daemon Virtualenv')}}:&nbsp
+            {%- if virtualenv_daemon -%}<span style="color: #4E9258; font-weight: bold;">{{_('Yes')}}</span>
+            {%- else -%}<span style="color: #F70D1A; font-weight: bold;">{{_('No')}}</span>
+            {%- endif -%}
+        {% endif %}
+        <br>{{_('Frontend Process ID')}}: <span style="color: #4E9258; font-weight: bold;">{{frontend_pid}}</span>
+        <br>{{_('Frontend RAM Usage')}}: <span style="color: #4E9258; font-weight: bold;">{{ram_use_flask}} MB</span>
+        <br>{{_('Frontend Virtualenv')}}:&nbsp
+        {%- if virtualenv_flask -%}<span style="color: #4E9258; font-weight: bold;">{{_('Yes')}}</span>
+        {%- else -%}<span style="color: #F70D1A; font-weight: bold;">{{_('No')}}</span>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        uptime
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{uptime}}</pre>
+      </div>
+    </div>
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Kernel Information: uname -a
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{uname}}</pre>
+      </div>
+    </div>
+
+  {%- if gpio_readall -%}
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        General-Purpose Input/Output (GPIO) Pins: gpio readall
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{gpio_readall}}</pre>
+      </div>
+    </div>
+  {%- endif -%}
+
+    {% for each_i2c_dev in i2c_devices_sorted %}
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        I<sup>2</sup>C Bus {{each_i2c_dev}}: i2cdetect -y {{each_i2c_dev}}
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{i2c_devices_sorted[each_i2c_dev]}}</pre>
+      </div>
+    </div>
+
+  {% endfor %}
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Disk Usage: df -h
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{df}}</pre>
+      </div>
+    </div>
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Memory: free -h
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{free}}</pre>
+      </div>
+    </div>
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Diagnostic Messages: dmesg | tail -n 20
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{dmesg_output}}</pre>
+      </div>
+    </div>
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Network: ifconfig -a
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{ifconfig}}</pre>
+      </div>
+    </div>
+
+  {% if daemon_up %}
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Processes (daemon and threads): pstree -p {{daemon_pid}}
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{pstree_daemon}}</pre>
+      </div>
+    </div>
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Processes (daemon and threads): top -b -H -n 1 -p {{daemon_pid}}
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{top_daemon}}</pre>
+      </div>
+    </div>
+
+  {% endif %}
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Processes (frontend and threads): pstree -p {{frontend_pid}}
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{pstree_frontend}}</pre>
+      </div>
+    </div>
+
+    <div style="padding-bottom: 1.5em">
+      <div style="padding-bottom: 0.5em">
+        Processes (frontend and threads): top -b -H -n 1 -p {{frontend_pid}}
+      </div>
+      <div>
+        <pre style="padding: 0.5em; border: 1px solid Black;">{{top_frontend}}</pre>
+      </div>
+    </div>
+
+  </div>
+
+{% endblock %}

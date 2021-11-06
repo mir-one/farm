@@ -1,0 +1,324 @@
+{% extends "layout-settings.html" %}
+{% set active_page = "settings" %}
+{% set active_settings = "general" %}
+{% set help_page = ["https://mir-one.github.io/Farm/Configuration-Settings/#general-settings", dict_translation['settings']['title'] + ': ' + dict_translation['general']['title']] %}
+
+{% block title %} - {{dict_translation['settings']['title'] + ': ' + dict_translation['general']['title']}}{% endblock %}
+
+{% block head %}
+<link href="/static/css/toastr.min.css" rel="stylesheet"/>
+<script src="/static/js/toastr.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "300",
+      "hideDuration": "1000",
+      "timeOut": "15000",
+      "extendedTimeOut": "10000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
+
+    $('form').submit(function (e) {
+      let submitter_btn = $(e.originalEvent.submitter);
+
+      if (submitter_btn.attr("name") === 'settings_general_save') {
+        toastr['info']('Command sent. Please wait...');
+        $.ajax({
+          type: "POST",
+          url: '/settings/general_submit',
+          data: $(this).serialize()
+              + '&'
+              + submitter_btn.attr("name")
+              + '='
+              + submitter_btn.attr("value"),
+          success: function (data) {
+            if (data.data.messages.error.length === 0) {
+              if ('warning' in data.data.messages && data.data.messages.warning.length !== 0) {
+                toastr['warning']('Warning: ' + data.data.messages.warning.join(", "));
+              }
+              if ('info' in data.data.messages && data.data.messages.info.length !== 0) {
+                toastr['info']('Info: ' + data.data.messages.info.join(", "));
+              }
+              if ('success' in data.data.messages && data.data.messages.success.length !== 0) {
+                toastr['success']('Success: ' + data.data.messages.success.join(", "));
+              }
+            } else {
+              toastr['error']('Error: ' + data.data.messages.error.join(", "));
+            }
+          },
+          error: function() {
+            toastr['error']('Error: Could not communicate with server');
+          }
+        });
+        e.preventDefault();
+      }
+    });
+
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader("X-CSRFToken", "{{form_settings_general.csrf_token._value()}}")
+        }
+      }
+    })
+  });
+</script>
+{% endblock %}
+
+{% block settings %}
+  <!-- Route: /settings/general -->
+  <div class="container">
+    <h3 style="text-align: right; padding-bottom: 1.3em;"><a href="https://mir-one.github.io/Farm/Configuration-Settings/#general-settings" target="_blank"><span style="font-size: 16px" class="fas fa-question-circle"></span></a> {{_('General Settings')}}</h3>
+
+    <form class="form-horizontal" method="post" action="/settings/general">
+      <input type="hidden" name="form-name" value="General">
+      {{form_settings_general.csrf_token}}
+      <div class="form-group">
+        {{form_settings_general.language.label(class_='col-sm-12 control-label')}}
+        <div class="col-sm-12">
+          <select class="form-control form-tooltip form-dropdown" data-placement="top" id="language" name="language" title="{{_("Selecting a language will override the web browser's language")}}">
+            <option value="">Browser Default</option>
+            {% for each_language in languages %}
+              <option value="{{each_language[0]}}"{% if current_user.language == each_language[0] %} selected{% endif %}>{{each_language[1]}}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.landing_page.label(class_='col-sm-12 control-label')}}
+        <div class="col-sm-12">
+          <select class="form-control form-tooltip form-dropdown" data-placement="top" id="landing_page" name="landing_page" title="{{_('Which page to land on after logging in')}}">
+            <option value="dashboard"{% if current_user.landing_page == 'dashboard' %} selected{% endif %}>{{_('Dashboard')}}</option>
+            <option value="live"{% if current_user.landing_page == 'live' %} selected{% endif %}>{{_('Live Measurements')}}</option>
+            <option value="info"{% if current_user.landing_page == 'system_information' %} selected{% endif %}>{{_('System Information')}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.index_page.label(class_='col-sm-12 control-label')}}
+        <div class="col-sm-12">
+          <select class="form-control form-tooltip form-dropdown" data-placement="top" id="index_page" name="index_page" title="{{_('Which page to land on after clicking brand link (top-corner link)')}}">
+            <option value="landing"{% if current_user.index_page == 'landing' %} selected{% endif %}>{{_('Same as Landing Page')}}</option>
+            <option value="dashboard"{% if current_user.index_page == 'dashboard' %} selected{% endif %}>{{_('Dashboard')}}</option>
+            <option value="live"{% if current_user.index_page == 'live' %} selected{% endif %}>{{_('Live Measurements')}}</option>
+            <option value="info"{% if current_user.index_page == 'info' %} selected{% endif %}>{{_('System Information')}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.rpyc_timeout.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.rpyc_timeout(class_='form-control', value=misc.rpyc_timeout, **{'title':_("Set the timeout (seconds) for Pyro connections (client-daemon communication). Requires daemon restart.")})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.daemon_debug_mode.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.daemon_debug_mode == true -%}
+            {{form_settings_general.daemon_debug_mode(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.daemon_debug_mode()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Enable Daemon debug logging for diagnosing issues. Requires Daemon restart.')}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.force_https.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.force_https == true -%}
+            {{form_settings_general.force_https(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.force_https()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Check to force all web connections to use SSL (port 443) for greater security.')}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.hide_success.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.hide_alert_success == true -%}
+            {{form_settings_general.hide_success(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.hide_success()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Check to prevent Success alert messages from appearing at the top of the page.')}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.hide_info.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.hide_alert_info == true -%}
+            {{form_settings_general.hide_info(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.hide_info()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Check to prevent Info alert messages from appearing at the top of the page.')}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.hide_warning.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.hide_alert_warning == true -%}
+            {{form_settings_general.hide_warning(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.hide_warning()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Check to prevent Warning alert messages from appearing at the top of the page.')}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.hide_tooltips.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.hide_tooltips == true -%}
+            {{form_settings_general.hide_tooltips(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.hide_tooltips()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Hide tooltips that pop up over form inputs.')}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.stats_opt_out.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.stats_opt_out == true -%}
+            {{form_settings_general.stats_opt_out(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.stats_opt_out()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Check if you do not wish to send anonymous usage statistics.')}} <a href="/admin/statistics">{{_('View collected statistics')}}</a>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-12">
+          <h3>Dashboard Options</h3>
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.grid_cell_height.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.grid_cell_height(class_='form-control', value=misc.grid_cell_height, **{'title':_("The heigth of the grid cell, in pixels.")})}}
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-12">
+          <h3>Upgrade Options</h3>
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.net_test_ip.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.net_test_ip(class_='form-control', value=misc.net_test_ip, **{'title':_("The IP address to test if there is an active internet connection required to allow upgrading.")})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.net_test_port.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.net_test_port(class_='form-control', value=misc.net_test_port, **{'title':_("The port of the internet test IP address.")})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.net_test_timeout.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.net_test_timeout(class_='form-control', value=misc.net_test_timeout, **{'title':_("The timeout period (seconds) for testing the internet connection.")})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.enable_upgrade_check.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.enable_upgrade_check == true -%}
+            {{form_settings_general.enable_upgrade_check(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.enable_upgrade_check()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Check if you would like Farm to automatically check for upgrades.')}}
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-12">
+          <h3>{{dict_translation['energy_usage']['title']}}</h3>
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.max_amps.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.max_amps(class_='form-control', value=misc.max_amps, **{'title':_("Set the maximum allowed amperage to be switched on at any given time")})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_stats_volts.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.output_stats_volts(class_='form-control', value=misc.output_usage_volts, **{'title':_('Set the voltage used to power the devices powered by the outputs')})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_stats_cost.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.output_stats_cost(class_='form-control', value=misc.output_usage_cost, **{'title':_('Set the cost per kilowatt-hour')})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_stats_currency.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.output_stats_currency(class_='form-control', value=misc.output_usage_currency, **{'title':_('Set the unit of currency used to pay for the electricity')})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_stats_day_month.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.output_stats_day_month(class_='form-control', value=misc.output_usage_dayofmonth, **{'title':_('Set a day of the month to calculate monthly power usage')})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_usage_report_gen.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {%- if misc.output_usage_report_gen == true -%}
+            {{form_settings_general.output_usage_report_gen(checked=True)}}
+          {%- else -%}
+            {{form_settings_general.output_usage_report_gen()}}
+          {%- endif -%}
+          &nbsp;&nbsp;{{_('Automatically generate output usage reports on a daily/weekly/monthly schedule')}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_usage_report_span.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          <select class="form-control form-tooltip form-dropdown" id="output_usage_report_span" name="output_usage_report_span" title="" data-original-title="{{_('How often to generate a report')}}">
+            <option value="monthly"{% if misc.output_usage_report_span == 'monthly' %} selected{% endif %}>Monthly</option>
+            <option value="weekly"{% if misc.output_usage_report_span == 'weekly' %} selected{% endif %}>Weekly</option>
+            <option value="daily"{% if misc.output_usage_report_span == 'daily' %} selected{% endif %}>Daily</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_usage_report_day.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.output_usage_report_day(class_='form-control', value=misc.output_usage_report_day, **{'title':_('Day Options: Daily: 1-7 (1=Monday), Monthly: 1-28')})}}
+        </div>
+      </div>
+      <div class="form-group">
+        {{form_settings_general.output_usage_report_hour.label(class_='col-sm-12 control-label checkbox-nopad')}}
+        <div class="col-sm-12">
+          {{form_settings_general.output_usage_report_hour(class_='form-control', value=misc.output_usage_report_hour, **{'title':_('Hour Options: 0-23')})}}
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-4 col-sm-12">
+          {{form_settings_general.settings_general_save(class_='btn btn-primary')}}
+        </div>
+      </div>
+    </form>
+
+  </div>
+
+{% endblock %}

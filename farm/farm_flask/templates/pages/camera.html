@@ -1,0 +1,398 @@
+{% extends "layout.html" %}
+{% set active_page = "camera" %}
+{% set help_page = ["https://mir-one.github.io/Farm/Camera/", _('Cameras')] %}
+
+{% block title %} - {{_('Camera')}}{% endblock %}
+
+{%  block head %}
+<link href="/static/css/toastr.min.css" rel="stylesheet"/>
+<script src="/static/js/toastr.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "300",
+      "hideDuration": "1000",
+      "timeOut": "15000",
+      "extendedTimeOut": "10000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
+
+    $('form').submit(function (e) {
+      let submitter_btn = $(e.originalEvent.submitter);
+
+      if (submitter_btn.attr("name") === 'camera_mod' ||
+          submitter_btn.attr("name") === 'camera_del' ||
+          submitter_btn.attr("name") === 'timelapse_generate') {
+        toastr['info']('Command sent. Please wait...');
+        $.ajax({
+          type: "POST",
+          url: '/camera_submit',
+          data: $(this).serialize()
+              + '&'
+              + submitter_btn.attr("name")
+              + '='
+              + submitter_btn.attr("value"),
+          success: function (data) {
+            if (data.data.messages.error.length === 0) {
+              if (submitter_btn.attr("name") === 'camera_del' && 'camera_id' in data.data) {
+                  $('#camera_' + data.data.camera_id).hide('slow');
+                  $('#spacer_' + data.data.camera_id).hide('slow');
+              }
+              if ('warning' in data.data.messages && data.data.messages.warning.length !== 0) {
+                toastr['warning']('Warning: ' + data.data.messages.warning.join(", "));
+              }
+              if ('info' in data.data.messages && data.data.messages.info.length !== 0) {
+                toastr['info']('Info: ' + data.data.messages.info.join(", "));
+              }
+              if ('success' in data.data.messages && data.data.messages.success.length !== 0) {
+                toastr['success']('Success: ' + data.data.messages.success.join(", "));
+              }
+            } else {
+              toastr['error']('Error: ' + data.data.messages.error.join(", "));
+            }
+          },
+          error: function() {
+            toastr['error']('Error: Could not communicate with server');
+          }
+        });
+        e.preventDefault();
+      }
+    });
+
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader("X-CSRFToken", "{{form_camera.csrf_token._value()}}")
+        }
+      }
+    })
+  });
+</script>
+{% endblock %}
+
+{% block body %}
+<!-- Route: /camera -->
+<div class="container">
+  {% include 'flash_messages.html' %}
+
+  <div class="container" style="width: 95%; padding: 1em">
+    <form method="post" action="/camera">
+      <div class="row align-items-end small-gutters">
+        {{form_camera.csrf_token}}
+        <div class="col-auto">
+          {{form_camera.name(class_='form-control', value='Camera Name')}}
+        </div>
+        <div class="col-auto">
+          <select class="form-control form-tooltip form-dropdown" id="library" name="library" title="" data-original-title="Select the library used to communicate">
+            {%- for each_library in camera_info -%}
+              <option value="{{each_library}}">{{camera_info[each_library]['name']}}</option>
+            {%- endfor -%}
+          </select>
+        </div>
+        <div class="col-auto">
+          {{form_camera.camera_add(class_='btn btn-primary btn-block')}}
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% for each_camera in camera %}
+
+  <div class="container" id="camera_{{each_camera.unique_id}}" style="width: 95%; border: 2px solid #ddd; border-radius: 5px;">
+    <form class="form-submit" method="post" action="/camera">
+    {{form_camera.csrf_token}}
+    {{form_camera.camera_id(value=each_camera.unique_id)}}
+    <div class="row small-gutters" style="border-bottom: 2px solid #ddd; padding: 0.1em 0;">
+      <div class="col-2 col-sm-1 text-center icon-fh">
+      <a data-toggle="collapse" href="#collapseContainer-camera-{{each_camera.unique_id}}" aria-expanded="false" aria-controls="collapseContainer-camera-{{each_camera.unique_id}}">
+        <span style="font-size: 3.6em" class="collapseContainer-camera-{{each_camera.unique_id}} fa fa-plus-square"></span>
+      </a>
+    </div>
+      <div class="col-12 col-sm-5 col-lg-3">
+        <input class="form-control" disabled="" title="UUID: {{each_camera.unique_id}}" value="[{{'%02d' % each_camera.id}}] ({{camera_info[each_camera.library]['name']}}) {{each_camera.name}}" type="text">
+      </div>
+      <div class="col-12 col-sm-3 col-lg-2">
+        {{form_camera.capture_still(class_='form-control btn btn-primary')}}
+      </div>
+
+      {% if camera_info[each_camera.library]['capable_stream'] and
+            not each_camera.timelapse_started %}
+        <div class="col-12 col-sm-3 col-lg-2">
+          {% if each_camera.stream_started -%}
+            {{form_camera.stop_stream(class_='form-control btn btn-primary')}}
+          {% else %}
+            {{form_camera.start_stream(class_='form-control btn btn-primary')}}
+          {%- endif %}
+        </div>
+      {%- endif %}
+
+      {% if not each_camera.stream_started -%}
+        {% if not each_camera.timelapse_started %}
+          <div class="col-12 col-sm-4 col-lg-2">
+            <a data-toggle="collapse" href="#collapseContainerTimelapse-{{each_camera.unique_id}}" aria-expanded="false" aria-controls="collapseContainerTimelapse-{{each_camera.unique_id}}" class="form-control btn btn-primary" role="button">{{_('Timelapse')}}</a>
+          </div>
+        {% else %}
+          {% if each_camera.timelapse_paused %}
+            <div class="col-12 col-sm-4 col-lg-2">
+              {{form_camera.resume_timelapse(class_='form-control btn btn-primary')}}
+            </div>
+          {% else %}
+            <div class="col-12 col-sm-4 col-lg-2">
+              {{form_camera.pause_timelapse(class_='form-control btn btn-primary')}}
+            </div>
+            <div class="col-12 col-sm-4 col-lg-2">
+              {{form_camera.stop_timelapse(class_='form-control btn btn-primary')}}
+            </div>
+          {% endif %}
+        {% endif %}
+      {%- endif %}
+
+    </div>
+
+    <div class="collapse" id="collapseContainerTimelapse-{{each_camera.unique_id}}" style="padding: 0.5em 0 0.5em 0.2em">
+      <div class="row align-items-end small-gutters">
+        <div class="col-12">
+          Time-lapse parameters:
+        </div>
+        <div class="col-auto">
+          {{form_camera.timelapse_interval.label(class_='control-label')}}
+          <div>
+            {{form_camera.timelapse_interval(class_='form-control', **{'title':_('The interval that photos will be acquired')})}}
+          </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.timelapse_runtime_sec.label(class_='control-label')}}
+          <div>
+            {{form_camera.timelapse_runtime_sec(class_='form-control', **{'title':_('How long to run before stopping. Set 0 to run forever.')})}}
+          </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.start_timelapse(class_='form-control btn btn-primary')}}
+        </div>
+      </div>
+    </div>
+
+    <div class="collapse" id="collapseContainer-camera-{{each_camera.unique_id}}">
+      <div class="row small-gutters" style="padding: 0.3em 0.2em 0.3em 0">
+        <div class="col-auto">
+          {{form_camera.camera_mod(class_='btn btn-primary btn-block')}}
+        </div>
+        <div class="col-auto">
+          {{form_camera.camera_del(class_='btn btn-primary btn-block', **{'onclick':'return confirm("Are you sure you want to delete this?")'})}}
+        </div>
+      </div>
+
+      <div class="row small-gutters" style="padding-bottom: 0.5em">
+
+      {% if each_camera.library == 'picamera' %}
+        {% if not pi_camera_enabled %}
+        <div class="col-12" style="color: red">
+          {{_("Raspberry Pi Camera support doesn't appear to be enabled. Please enable it using the Raspberry Pi configuration or with the command 'sudo raspi-config'")}}
+        </div>
+        {% endif  %}
+      {% elif each_camera.library == 'fswebcam' %}
+        <div class="col-12" style="color: red">
+          {{_("Different options are available depending on the camera being used.")}} {{_("Execute 'fswebcam --device /dev/video0 --list-controls' to see available options to use in 'Custom Options'.")}}
+        </div>
+      {% elif each_camera.library == 'opencv' %}
+        <div class="col-12" style="color: red">
+          {{_("Different options are available depending on the camera being used.")}}
+        </div>
+      {% endif %}
+
+        <div class="col-12 col-sm-3">
+          {{form_camera.name.label(class_='control-label')}}
+          <div>
+            {{form_camera.name(class_='form-control', value=each_camera.name, **{'title':_('Name for this Camera')})}}
+          </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.cmd_pre_camera.label(class_='control-label')}}
+          <div>
+            {{form_camera.cmd_pre_camera(class_='form-control', value=each_camera.cmd_pre_camera, **{'title':_('Linux shell command to execute prior to acquiring a still image.')})}}
+           </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.cmd_post_camera.label(class_='control-label')}}
+          <div>
+            {{form_camera.cmd_post_camera(class_='form-control', value=each_camera.cmd_post_camera, **{'title':_('Linux shell command to execute after acquiring a still image.')})}}
+           </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.output_id.label(class_='control-label')}}
+          <div>
+            <select class="form-control form-tooltip form-dropdown" id="output_id" name="output_id" title="" data-original-title="Select the output to activate while the camera is acquiring an image or streaming.">
+              {%  if not choices_output_channels %}
+                <option value="">No Outputs Available</option>
+              {% else %}
+                <option value="">Disabled</option>
+              {% endif %}
+              {%- for each_output in choices_output_channels if 'on_off' in each_output['types'] -%}
+                <option value="{{each_output['value']}}"{% if each_camera.output_id == each_output['value'] %} selected{% endif %}>{{each_output['item']}}</option>
+              {%- endfor -%}
+            </select>
+          </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.output_duration.label(class_='control-label')}}
+          <div>
+            {{form_camera.output_duration(class_='form-control', value=each_camera.output_duration, **{'title':_('The duration to keep the output on prior to acquiring a still image. For example, useful for fluorescent lights that take a few seconds to turn on.')})}}
+           </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.path_still.label(class_='control-label')}}
+          <div>
+            {{form_camera.path_still(class_='form-control', value=each_camera.path_still, **{'title':_('Path to save still image files. Leave blank to use default location.')})}}
+           </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.path_timelapse.label(class_='control-label')}}
+          <div>
+            {{form_camera.path_timelapse(class_='form-control', value=each_camera.path_timelapse, **{'title':_('Path to save timelapse image files. Leave blank to use default location.')})}}
+           </div>
+        </div>
+      {% if camera_info[each_camera.library]['capable_stream'] %}
+        <div class="col-auto">
+          {{form_camera.path_video.label(class_='control-label')}}
+          <div>
+            {{form_camera.path_video(class_='form-control', value=each_camera.path_video, **{'title':_('Path to save video files. Leave blank to use default location.')})}}
+           </div>
+        </div>
+      {% endif %}
+        <div class="col-auto">
+          {{form_camera.hflip.label(class_='control-label')}}
+          <div class="input-group-text">
+            <input id="hflip" name="hflip" type="checkbox" value="y"{% if each_camera.hflip %} checked{% endif %}>
+          </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.vflip.label(class_='control-label')}}
+          <div class="input-group-text">
+            <input id="vflip" name="vflip" type="checkbox" value="y"{% if each_camera.vflip %} checked{% endif %}>
+          </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.hide_still.label(class_='control-label')}}
+          <div class="input-group-text">
+            <input id="hide_still" name="hide_still" type="checkbox" value="y"{% if each_camera.hide_still %} checked{% endif %}>
+          </div>
+        </div>
+        <div class="col-auto">
+          {{form_camera.hide_timelapse.label(class_='control-label')}}
+          <div class="input-group-text">
+            <input id="hide_timelapse" name="hide_timelapse" type="checkbox" value="y"{% if each_camera.hide_timelapse %} checked{% endif %}>
+          </div>
+        </div>
+
+      {% include 'pages/camera_options/' + each_camera.library + '.html' %}
+
+      </div>
+    </div>
+
+    <div class="row small-gutters">
+
+    {%- if camera_info[each_camera.library]['capable_stream'] and
+           each_camera.stream_started -%}
+      <div>
+        {{_('Video Stream')}}:
+        <br/><img style="max-width: 100%" src="/video_feed/{{each_camera.unique_id}}">
+      </div>
+    {%- endif -%}
+
+    {% if each_camera.timelapse_started and not each_camera.hide_timelapse %}
+      <div class="col-12">
+        {{_('Timelapse Parameters')}}:
+        <br>Time-lapse: {% if each_camera.timelapse_paused %}Paused{% else %}Running{% endif %}
+        <br/>Start time: {{epoch_to_time_string(each_camera.timelapse_start_time)}}
+        <br/>End time: {{epoch_to_time_string(each_camera.timelapse_end_time)}}
+        <br/>Interval: {{each_camera.timelapse_interval}} seconds
+        <br/>Next Capture: {{epoch_to_time_string(each_camera.timelapse_next_capture)}}
+        <br/>Next capture number: {{each_camera.timelapse_capture_number}}
+      </div>
+    {% endif %}
+
+    {% if latest_img_tl[each_camera.unique_id] and not each_camera.hide_timelapse %}
+
+      <div class="col-12 col-sm-4 col-lg-2">
+        <a data-toggle="collapse" href="#collapseContainerTimelapseVideo-{{each_camera.unique_id}}" aria-expanded="false" aria-controls="collapseContainerTimelapse-{{each_camera.unique_id}}" class="form-control btn btn-primary" role="button">{{_('Generate')}}</a>
+      </div>
+      <div class="collapse" id="collapseContainerTimelapseVideo-{{each_camera.unique_id}}" style="padding: 0.5em">
+        <div class="row align-items-end small-gutters">
+          <div class="col-12">
+            Time-lapse Video Generation Options:
+          </div>
+          <div class="col-auto">
+            {{form_camera.timelapse_image_set.label(class_='control-label')}}
+            <div>
+              <select class="form-control form-tooltip form-dropdown" id="timelapse_image_set" name="timelapse_image_set" title="" data-original-title="Select the set of time-lapse images to turn into a video (name is time-lapse start time)">
+              {% for each_set in time_lapse_imgs[each_camera.unique_id] %}
+                <option value="{{each_set}}">{{each_set}}</option>
+              {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="col-auto">
+            {{form_camera.timelapse_codec.label(class_='control-label')}}
+            <div>
+              <select class="form-control form-tooltip form-dropdown" id="timelapse_codec" name="timelapse_codec" title="" data-original-title="Select the codec to encode the video">
+                <option value="mpeg4">mpeg4</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-auto">
+            {{form_camera.timelapse_fps.label(class_='control-label')}}
+            <div>
+              {{form_camera.timelapse_fps(class_='form-control', value=24)}}
+            </div>
+          </div>
+          <div class="col-auto">
+            {{form_camera.timelapse_generate(class_='form-control btn btn-primary')}}
+          </div>
+        </div>
+      </div>
+
+      <div class="container-timelapse-{{each_camera.unique_id}}">
+        {{_('Last Timelapse')}}: {{latest_img_tl_ts[each_camera.unique_id]}}
+        <br/><a href="/camera/{{each_camera.unique_id}}/timelapse/{{latest_img_tl[each_camera.unique_id]}}" target="_blank"><img style="max-width: 100%" src="/camera/{{each_camera.unique_id}}/timelapse/{{latest_img_tl[each_camera.unique_id]}}"></a>
+      </div>
+    {% endif %}
+
+    {% if latest_img_still[each_camera.unique_id] and not each_camera.hide_still %}
+      <div class="container-still-{{each_camera.unique_id}}">
+        {{_('Last Still')}}: {{latest_img_still_ts[each_camera.unique_id]}}
+        <br/><a href="/camera/{{each_camera.unique_id}}/still/{{latest_img_still[each_camera.unique_id]}}" target="_blank"><img style="max-width: 100%" src="/camera/{{each_camera.unique_id}}/still/{{latest_img_still[each_camera.unique_id]}}"></a>
+      </div>
+    {% endif %}
+
+    </div>
+
+    </form>
+
+  </div>
+
+  <div id="spacer_{{each_camera.unique_id}}" style="clear: both; padding: 1em 0;"></div>
+
+  {% endfor %}
+
+</div>
+
+<script>
+  $('.collapse').on('show.bs.collapse', function(){
+    $(this).parent().find(".fa-plus-square").removeClass("fa-plus-square").addClass("fa-minus-square");
+  }).on('hide.bs.collapse', function(){
+    $(this).parent().find(".fa-minus-square").removeClass("fa-minus-square").addClass("fa-plus-square");
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+{% set active_page = "export" %}
+{% set help_page = ["https://mir-one.github.io/Farm/Export-Import/", _('Export Import')] %}
+
+{% block title %} - {{_('Export Import')}}{% endblock %}
+
+{% block head %}
+<script type="text/javascript" src="/static/js/moment.min.js"></script>
+<script type="text/javascript" src="/static/js/daterangepicker.js"></script>
+<link rel="stylesheet" type="text/css" href="/static/css/daterangepicker.css" />
+{% endblock %}
+
+{% block body %}
+<!-- Route: /export -->
+<div class="container">
+  {% include 'flash_messages.html' %}
+
+  <h4>{{_('Export Import')}} <a href="{{help_page[0]}}" target="_blank"><span style="font-size: 16px" class="fas fa-question-circle"></span></a></h4>
+
+  <h4 style="padding-top: 1em">Export Measurement Data as CSV</h4>
+
+  <p>This will export all measurements found within the date/time range in comma-separated value (CSV) format (as timestamp, measurement).</p>
+  <p>Note 1: Requesting large data sets may take a long time to process.</p>
+  <p>Note 2: Dates and times are stored in influxdb as UTC, therefore you will need to adjust to your time zone for the local time.</p>
+
+  <form method="post" action="/export">
+  {{form_export_measurements.csrf_token}}
+  <div class="row small-gutters" style="padding-top: 1em">
+    <div class="col-auto">
+      {{form_export_measurements.measurement.label(class_='control-label')}}
+      <div>
+        <select class="selectpicker" id="measurement" name="measurement">
+        {% for each_input_form in choices_input -%}
+          <option value="{{each_input_form['value']}}">{{each_input_form['item']}}</option>
+        {% endfor -%}
+        {% for each_output_form in choices_output  -%}
+          <option value="{{each_output_form['value']}}">{{each_output_form['item']}}</option>
+        {% endfor -%}
+        {% for each_function_form in choices_function -%}
+          <option value="{{each_function_form['value']}}">{{each_function_form['item']}}</option>
+        {% endfor -%}
+        {% for each_math_form in choices_math -%}
+          <option value="{{each_math_form['value']}}">{{each_math_form['item']}}</option>
+        {% endfor -%}
+        </select>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6">
+      {{form_export_measurements.date_range.label(class_='control-label')}}
+      <div>
+        <input class="form-control" type="text" name="date_range" value="{{start_picker}} - {{end_picker}}" />
+      </div>
+    </div>
+  </div>
+  <div class="form-inline">
+    <div class="form-group">
+      {{form_export_measurements.export_data_csv(class_='btn btn-primary')}}
+    </div>
+  </div>
+  </form>
+
+  <h4 style="padding-top: 2em">Export InfluxDB Database and Metastore as ZIP</h4>
+
+  <p>This will create a ZIP file containing the InfluxDB meatastore and database containing all measurement data.</p>
+
+  <form method="post" action="/export">
+  {{form_export_influxdb.csrf_token}}
+  <div class="form-inline">
+    <div class="form-group">
+      {{form_export_influxdb.export_influxdb_zip(class_='btn btn-primary')}}
+    </div>
+  </div>
+  </form>
+
+  <h4 style="padding-top: 2em">Import InfluxDB Database and Metastore from ZIP</h4>
+
+  <p>This will allow a ZIP file containing the InfluxDB meatastore and database to be uploaded and overwirite the current Influxdb database of measurements. Again, all data will be replaced (i.e. destroyed) by the imported backup. It is advised to export your current data before importing a previous backup if you don't want to lose this data. In the future, there will be an option to combine imported data with the current data. InfluxDB and the Farm daemon (backend) will be stopped momentarily while the import takes place.</p>
+
+  <form method="post" action="/export" enctype=multipart/form-data>
+  {{form_import_influxdb.csrf_token}}
+  <div class="form-inline">
+    <div class="form-group fileinput fileinput-new" data-provides="fileinput">
+      <span class="btn btn-sm btn-file"><input id="influxdb_import_file" name="influxdb_import_file" type="file" /></span>
+    </div>
+    <div class="form-group">
+      {{form_import_influxdb.influxdb_import_upload(class_='btn btn-primary')}}
+    </div>
+  </div>
+  </form>
+
+  <h4 style="padding-top: 2em">Export Farm Settings Data as ZIP</h4>
+
+  <p>This will create a ZIP file containing the Farm settings database containing the Farm configuration and user information. It will also include any custom functions, inputs, outputs, and widgets.</p>
+
+  <form method="post" action="/export">
+  {{form_export_settings.csrf_token}}
+  <div class="form-inline">
+    <div class="form-group">
+      {{form_export_settings.export_settings_zip(class_='btn btn-primary')}}
+    </div>
+  </div>
+  </form>
+
+  <h4 style="padding-top: 2em">Import Farm Settings Data from ZIP</h4>
+
+    <p>WARNING: MAKE A <a href="/admin/backup">FARM BACKUP</a> BEFORE ATTEMPTING A SETTINGS IMPORT!</p>
+
+  <p>This will allow a ZIP file containing the Farm settings database and custom functions/inputs/outputs/widgets to be uploaded and replace the current settings. Only databases from Farm versions equal or prior to the current Farm version should be imported. There is no check for this, but if you attempt to import a database from a version higher than the current Farm version, there will likely be issues. There may also be issues if the custom controllers are incompatible with the Farm version you're importing in to.</p>
+
+  <p>Note 1: This will override all settings, user accounts, and custom functions/inputs/outputs/widgets, and log you out from the web UI. A backup of the current database will be created in the database directory (~/Farm/databases/farm.db.backup_DATE_TIME).</p>
+
+  <p>Note 2: During this process, the new database will be upgraded to the current Farm version and all unmet dependencies will be installed. This process can take a while to complete if there are a significant number of dependencies to install, so be patient.</p>
+
+  <form method="post" action="/export" enctype=multipart/form-data>
+  {{form_import_settings.csrf_token}}
+  <div class="form-inline">
+    <div class="form-group fileinput fileinput-new" data-provides="fileinput">
+      <span class="btn btn-sm btn-file"><input id="settings_import_file" name="settings_import_file" type="file" /></span>
+    </div>
+    <div class="form-group">
+      {{form_import_settings.settings_import_upload(class_='btn btn-primary')}}
+    </div>
+  </div>
+  </form>
+
+  <div style="padding-top: 2em"></div>
+
+</div>
+
+<script type="text/javascript">
+$(function() {
+    $('input[name="date_range"]').daterangepicker({
+        timePicker: true,
+        timePicker24Hour: true,
+        timePickerIncrement: 1,
+        locale: {
+            format: 'MM/DD/YYYY HH:mm'
+        }
+    });
+});
+</script>
+
+{% endblock %}
