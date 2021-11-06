@@ -15,15 +15,9 @@ Support
 Documentation
 ~~~~~~~~~~~~~
 
-`Farm Manual <https://mir-one.github.io/Farm>`__ (`PDF <https://github.com/mir-one/Farm/raw/master/docs/farm-manual.pdf>`__)
-
 `Farm API <https://mir-one.github.io/Farm/farm-api.html>`__ (Version: v1)
 
-`Farm Wiki <https://github.com/mir-one/Farm/wiki>`__
-
 `Farm Custom Module Repository <https://github.com/mir-one/Farm-custom>`__
-
-`Farm Support Android App <https://play.google.com/store/apps/details?id=com.farm.farmdocs>`__
 
 Discussion
 ~~~~~~~~~~
@@ -34,11 +28,6 @@ Bug in the Farm Software
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you believe there is a bug in the Farm software, first search through the guthub `Issues <https://github.com/mir-one/Farm/issues>`__ and see if your issue has already recently been discussed or resolved. If your issue is novel or significantly mre recent than a similar one, you should create a `New Issue <https://github.com/mir-one/Farm/issues/new>`__. When creating a new issue, make sure to read all information in the issue template and follow the instructions. Replace the template text with the information being requested (e.g. "step 1" under "Steps to Reproduce the issue" should be replaced with the actual steps to reproduce the issue). The more information you provide, the easier it is to reproduce and diagnose the issue. If the issue is not able to reproduced because not enough information is provided, it may delay or prevent solving the issue.
-
-Donate
-------
-
-I have always made Farm free and I don't intend on changing that. However, if you find Farm useful and would like to support its continued development, please consider becoming a sponsor at `github.com/sponsors/kizniche <https://github.com/sponsors/kizniche>`__ or donate at `mir.one/donate <https://mir.one/donate>`__.
 
 --------------
 
