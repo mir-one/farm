@@ -42,4 +42,4 @@ https://127.0.0.1
 
 Become a Sponsor: [github.com/sponsors/mir-one](https://github.com/sponsors/mir-one)
 
-Other methods: [KyleGabriel.com/donate](https://mir.one/donate)
+Other methods: [mir.one/donate](https://mir.one/donate)
