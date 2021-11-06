@@ -1,0 +1,18 @@
+[Unit]
+Description=Farm server
+After=syslog.target network.target influxd.service
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+Restart=on-failure
+RestartSec=20s
+Type=forking
+TimeoutSec=0
+ExecStartPre=/bin/bash /var/farm-root/install/influxdb_wait_until_running.sh
+ExecStart=/var/farm-root/env/bin/python /var/farm-root/farm/farm_daemon.py
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+Alias=farm.service
