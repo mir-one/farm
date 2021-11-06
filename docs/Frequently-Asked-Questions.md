@@ -1,0 +1,1 @@
+Frequently asked questions can be found [here](https://forum.mir.one/docs?category=23&tags=farm)
