@@ -73,43 +73,6 @@ Uses
 
 Originally developed to cultivate edible mushrooms, Farm has evolved to do much more. Here are a few things that have been done with Farm:
 
-My projects
-~~~~~~~~~~~
-
--  `Mushroom Cultivation Automation <https://mir.one/projects/2021/09/mushroom-cultivation-automation.html>`__ (`Archive <https://archive.is/HUtdp>`__)
--  `Hydroponic System Automation <https://mir.one/projects/2020/06/automated-hydroponic-system-build.html>`__ (`Archive <http://archive.is/mB2zc>`__)
--  `Mushroom cultivation <https://mir.one/projects/2015/04/mushroom-cultivation-revisited.html>`__ (`Archive <http://archive.is/J92Xa>`__)
--  `Ground-based plant cultivation <https://www.youtube.com/watch?v=QNCx_VE7D-8>`__
--  `Maintaining honey bee apiary homeostasis <https://mir.one/projects/2015/12/environmentally-controlled-apiary.html>`__ (`Archive <http://archive.is/RLo6n>`__)
--  `Maintaining humidity in an underground artificial bat cave <https://mir.one/projects/2015/10/artificial-bat-cave.html>`__ (`Archive <http://archive.is/QIJ5G>`__)
--  `Remote radiation monitoring and mapping <https://mir.one/projects/2019/08/remote-radiation-monitoring.html>`__ (`Archive <http://archive.is/PF44Z>`__)
--  `Cooking sous-vide <https://hackaday.io/project/11997-farm-environmental-regulation-system/log/45733-sous-vide-pid-tuning-and-the-unexpected-electrical-fire>`__ (`Archive <http://archive.is/Mx52U>`__)
--  `Maintaining a light schedule and regulating humidity <https://fieldstation.kennesaw.edu/summer-days-2020.php#2020_07_16_gabriel_chestnut>`__, ramping from 90 % to 50 % over a 4 week period to acclimatize micropropagated American chestnut plantlets from laboratory to ambient outdoor conditions (`Archive <http://archive.is/Jp60P>`__)
-
-Featured
-~~~~~~~~
-
-.. image:: https://mir.one/projects/wp-content/uploads/sites/3/2021/09/MushroomCultivation_512x288.jpg
-   :target: https://www.youtube.com/watch?v=z41Wy5ZF4O8
-
-.. image:: https://mir.one/projects/wp-content/uploads/sites/3/2020/07/VID_PROJ_HYDRO_512x288.jpg
-   :target: https://www.youtube.com/watch?v=nyqykZK2Ev4
-
-Projects of others
-~~~~~~~~~~~~~~~~~~
-
--  Maintaining aquatic systems (e.g. fish, hydroponic, aquaponic)
--  Maintaining terrarium, herpetarium, and vivarium environments
--  Incubating young animals and eggs
--  Aging cheese
--  Dry-aging, curing, and smoking meat (`Link 1 <http://www.charcuterie-worst.nl/forum/index.php/topic,425.0.html>`__ (`Archive <http://archive.is/NHKqp>`__), `Link 2 <https://www.floriske.nl/wordpress/2019/06/meat-curing-cabinet/>`__ (`Archive <https://archive.ph/57ouJ>`__))
--  Fermenting beer, food, and tobacco
--  Controlling reflow ovens
--  Culturing microorganisms
--  `Treating agricultural waste water <https://projects.sare.org/project-reports/gne17-158/>`__ (`Archive <http://archive.is/enJQs>`__, `Publication <https://pubs.acs.org/doi/pdf/10.1021/acsestwater.0c00234>`__)
--  ...and more
-
-`Let me know <https://mir.one/contact/>`__ how you use Farm and I may include it on this list.
 
 Screenshots
 -----------
