@@ -1,0 +1,21 @@
+[Unit]
+Description=gunicorn daemon for Farm flask web user interface
+After=network.target
+
+[Service]
+User=root
+Group=farm
+WorkingDirectory=/var/farm-root/farm
+ExecStart=/var/farm-root/env/bin/gunicorn \
+--workers 1 \
+--worker-class gthread \
+--threads 2 \
+--timeout 300 \
+--pid /var/run/farmflask.pid \
+--bind unix:/var/run/farmflask.sock start_flask_ui:app
+
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+
+[Install]
+WantedBy=multi-user.target
