@@ -1,0 +1,10 @@
+/var/log/farm/*.log {
+        hourly
+        size 10M
+        create 644 farm farm
+        rotate 5
+        delaycompress
+        compress
+        notifempty
+        missingok
+}
