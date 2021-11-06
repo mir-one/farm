@@ -3,7 +3,7 @@ Farm
 
 Environmental Regulation System
 
-Latest version: 8.12.8
+Latest version: 1.0.0
 
 Farm is open source software for the Raspberry Pi that couples inputs and outputs in interesting ways to sense and manipulate the environment.
 
