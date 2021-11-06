@@ -1,0 +1,36 @@
+#
+#  install - Farm install script
+#
+#  Do not execute this script if the Farm archive has been downloaded and extracted.
+#  If Farm has been extracted (~/Farm/ already exists), then execute:
+#
+#  sudo /bin/bash ~/Farm/install/setup.sh
+#
+#
+#  If Farm has not yet been downloaded/extracted, execute the following to install:
+#
+#  curl -L https://raw.githubusercontent.com/mir-one/Farm/master/install/install | bash
+#
+
+INSTALL_DIRECTORY=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd -P )
+
+if [ "$EUID" -eq 0 ]; then
+    printf "Do not run as root. Run as non-root user: \"/bin/bash %s/install\"\n" "${INSTALL_DIRECTORY}"
+    exit 1
+fi
+
+if [ -d ~/Farm ]; then
+  printf "## Error: Install aborted. Cause: The ~/Farm directory already exists. The install cannot continue because a previous Farm install was detected. Please either move or delete the ~/Farm directory and rerun this script to initiate the install or run ~/Farm/install/setup.sh.\n"
+  exit 1
+fi
+
+sudo apt-get install -y jq whiptail python3
+
+cd ~
+curl -s https://api.github.com/repos/mir-one/Farm/releases/latest | \
+jq -r '.tarball_url' | wget -i - -O farm-latest.tar.gz
+mkdir Farm
+tar xzf farm-latest.tar.gz -C Farm --strip-components=1
+rm -f farm-latest.tar.gz
+cd Farm/install
+sudo /bin/bash ./setup.sh
